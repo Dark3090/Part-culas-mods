@@ -17,25 +17,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout do SEU repo (arquivos do mod) ───────────────
       - name: Checkout mod files
         uses: actions/checkout@v4
         with:
           path: mod-files
 
-      # ── 2. Clona o LeviLauncher ─────────────────────────────────
       - name: Clone LeviLauncher
         run: |
           git clone --depth=1 --recurse-submodules ${{ env.LEVI_REPO }} launcher
 
-      # ── 3. Java ─────────────────────────────────────────────────
+      # Imprime a API real do BaseOverlayButton para debug
+      - name: Print BaseOverlayButton API
+        run: |
+          echo "=== BaseOverlayButton.java ==="
+          cat launcher/app/src/main/java/org/levimc/launcher/core/mods/inbuilt/overlay/BaseOverlayButton.java || echo "Arquivo não encontrado"
+
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
-      # ── 4. NDK e CMake ──────────────────────────────────────────
       - name: Install NDK and CMake
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
@@ -43,7 +45,6 @@ jobs:
             "cmake;${{ env.CMAKE_VERSION }}" \
             --sdk_root=$ANDROID_HOME
 
-      # ── 5. Cache Gradle (agora o projeto existe) ─────────────────
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -53,7 +54,6 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('launcher/**/*.gradle*', 'launcher/**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # ── 6. Copia e aplica os arquivos do mod ─────────────────────
       - name: Patch LeviLauncher with mod files
         run: |
           CPP_DEST="launcher/app/src/main/cpp/inbuiltmods/src/particles"
@@ -74,23 +74,19 @@ jobs:
           echo "=== Patch aplicado ==="
           ls -la "$CPP_DEST"
 
-      # ── 7. Build ─────────────────────────────────────────────────
       - name: Build Debug APK
         working-directory: launcher
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      # ── 8. Extrai o .so do APK ───────────────────────────────────
       - name: Extract libinbuiltmods.so
         run: |
           APK=$(find launcher/app/build/outputs/apk/debug -name "*.apk" | head -1)
-          echo "APK: $APK"
           mkdir -p extracted
           unzip -j "$APK" "lib/arm64-v8a/libinbuiltmods.so" -d extracted/
           ls -lh extracted/libinbuiltmods.so
 
-      # ── 9. Upload do .so ─────────────────────────────────────────
       - name: Upload libinbuiltmods.so
         uses: actions/upload-artifact@v4
         with:
@@ -98,7 +94,6 @@ jobs:
           path: extracted/libinbuiltmods.so
           retention-days: 30
 
-      # ── 10. Summary ──────────────────────────────────────────────
       - name: Build summary
         if: always()
         run: |
