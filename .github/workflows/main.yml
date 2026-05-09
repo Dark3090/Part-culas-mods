@@ -9,7 +9,7 @@ env:
   NDK_VERSION: "27.0.12077973"
   CMAKE_VERSION: "3.22.1"
   JAVA_VERSION: "21"
-  LEVI_REPO: "https://github.com/LeviMC/LeviLaunchroid.git"
+  LEVI_REPO: "https://github.com/LiteLDev/LeviLaunchroid.git"
 
 jobs:
   build:
